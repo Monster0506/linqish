@@ -100,3 +100,10 @@ class Find[T](Iterable[T]):
     def then(self, operator: Operator[T]) -> Find[T]:
         operator(self)
         return self
+
+    def any(self) -> bool:
+        return any(True for _ in self)
+
+    def all(self, predicate: Predicate[T]) -> bool:
+        return all(predicate(x) for x in self)
+
