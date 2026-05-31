@@ -77,7 +77,7 @@ class Find[T](Iterable[T]):
 
         return Find(_distinct())
 
-    def distinctBy[K: Hashable](self, key: KeySelector[T,K] ) -> Find[T]:
+    def distinctBy[K: Hashable](self, key: KeySelector[T,K]) -> Find[T]:
         def _distinct() -> Iterator[T]:
             seen: set[Hashable] = set()
 
@@ -107,3 +107,5 @@ class Find[T](Iterable[T]):
     def all(self, predicate: Predicate[T]) -> bool:
         return all(predicate(x) for x in self)
 
+    def orderBy[K](self, key: KeySelector[T, K]) -> Find[T]:
+        return Find(sorted(self, key=key))
