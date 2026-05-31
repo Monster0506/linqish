@@ -1,19 +1,19 @@
 from typing import Callable
 
 type Predicate[T] = Callable[[T], bool]
-type Operator[T] = Callable[[list[T]], None]
+type Operator[T] = Callable[[Iterable[T]], None]
 
 
 class Find[T]:
-    def __init__(self, cards: list[T]):
+    def __init__(self, cards: Iterable[T]):
         self._cards = cards
         self._predicate: Predicate | None = None
 
-    def thatAre(self, predicate: Predicate) -> Find:
+    def thatAre(self, predicate: Predicate) -> Find[T]:
         self._predicate = predicate
         return self
 
-    def andAre(self, predicate: Predicate) -> Find:
+    def andAre(self, predicate: Predicate) -> Find[T]:
         if self._predicate is None:
             self._predicate = predicate
         else:
@@ -22,7 +22,7 @@ class Find[T]:
 
         return self
 
-    def orAre(self, predicate: Predicate) -> Find:
+    def orAre(self, predicate: Predicate) -> Find[T]:
         if self._predicate is None:
             self._predicate = predicate
         else:
@@ -31,7 +31,7 @@ class Find[T]:
 
         return self
 
-    def without(self, predicate: Predicate) -> Find:
+    def without(self, predicate: Predicate) -> Find[T]:
         return self.andAre(lambda c: not predicate(c))
 
     def toList(self) -> list[T]:
@@ -47,6 +47,6 @@ class Find[T]:
         cards = self.toList()
         return cards[0] if cards else None
 
-    def then(self, operator: Operator) -> Find:
+    def then(self, operator: Operator) -> Find[T]:
         operator(self.toList())
         return self
