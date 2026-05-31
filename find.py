@@ -1,9 +1,16 @@
-from collections.abc import Callable, Iterable, Iterator, Hashable
+from collections import defaultdict
+from collections.abc import Callable, Hashable, Iterable, Iterator
+from typing import Protocol
 
 type Predicate[T] = Callable[[T], bool]
 type Operator[T] = Callable[[Iterable[T]], None]
 type Mapper[T, U] = Callable[[T], U]
 type KeySelector[T, K] = Callable[[T], K]
+type Group[T, K] = tuple[K, list[T]]
+
+
+class SupportsLessThan(Protocol):
+    def __lt__(self, other: object, /) -> bool: ...
 
 
 class Find[T](Iterable[T]):
@@ -77,7 +84,7 @@ class Find[T](Iterable[T]):
 
         return Find(_distinct())
 
-    def distinctBy[K: Hashable](self, key: KeySelector[T,K]) -> Find[T]:
+    def distinctBy[K: Hashable](self, key: KeySelector[T, K]) -> Find[T]:
         def _distinct() -> Iterator[T]:
             seen: set[Hashable] = set()
 
@@ -88,6 +95,7 @@ class Find[T](Iterable[T]):
                     yield item
 
         return Find(_distinct())
+
     def first(self) -> T | None:
         return next(iter(self), None)
 
@@ -107,5 +115,19 @@ class Find[T](Iterable[T]):
     def all(self, predicate: Predicate[T]) -> bool:
         return all(predicate(x) for x in self)
 
-    def orderBy[K](self, key: KeySelector[T, K]) -> Find[T]:
+    def orderBy[K: SupportsLessThan](self, key: KeySelector[T, K]) -> Find[T]:
         return Find(sorted(self, key=key))
+
+    def groupBy[K: Hashable](
+        self,
+        key: KeySelector[T, K],
+    ) -> Find[Group[K, T]]:
+        groups: defaultdict[K, list[T]] = defaultdict(list)
+
+        for item in self:
+            groups[key(item)].append(item)
+
+        return Find[Group[K, T]](
+            ((group_key, items) for group_key, items in groups.items()),
+        )
+
