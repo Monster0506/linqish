@@ -6,14 +6,14 @@ type Predicate[T] = Callable[[T], bool]
 type Operator[T] = Callable[[Iterable[T]], None]
 type Mapper[T, U] = Callable[[T], U]
 type KeySelector[T, K] = Callable[[T], K]
-type Group[T, K] = tuple[K, list[T]]
+type Group[K, T] = tuple[K, list[T]]
 
 
 class SupportsLessThan(Protocol):
     def __lt__(self, other: object, /) -> bool: ...
 
 
-class Find[T](Iterable[T]):
+class Find[T: Hashable](Iterable[T]):
     def __init__(
         self,
         items: Iterable[T],
@@ -127,7 +127,5 @@ class Find[T](Iterable[T]):
         for item in self:
             groups[key(item)].append(item)
 
-        return Find[Group[K, T]](
-            ((group_key, items) for group_key, items in groups.items()),
-        )
+        return Find[Group[K, T]](groups.items())
 
