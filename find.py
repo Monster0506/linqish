@@ -1,63 +1,90 @@
-from collections.abc import Iterable, Callable
+from collections.abc import Callable, Iterable, Iterator
 
 type Predicate[T] = Callable[[T], bool]
 type Operator[T] = Callable[[Iterable[T]], None]
 type Mapper[T, U] = Callable[[T], U]
 
 
-class Find[T]:
-    def __init__(self, cards: Iterable[T]):
-        self._items = cards
-        self._predicate: Predicate[T] | None = None
+class Find[T](Iterable[T]):
+    def __init__(
+        self,
+        items: Iterable[T],
+        predicate: Predicate[T] | None = None,
+    ):
+        self._items = items
+        self._predicate = predicate
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[T]:
         if self._predicate is None:
             yield from self._items
         else:
             yield from filter(self._predicate, self._items)
 
-
     def thatAre(self, predicate: Predicate[T]) -> Find[T]:
-        self._predicate = predicate
-        return self
+        if self._predicate is None:
+            return Find(self._items, predicate)
+
+        current = self._predicate
+        return Find(
+            self._items,
+            lambda x: current(x) and predicate(x),
+        )
 
     def andAre(self, predicate: Predicate[T]) -> Find[T]:
-        if self._predicate is None:
-            self._predicate = predicate
-        else:
-            current = self._predicate
-            self._predicate = lambda c: current(c) and predicate(c)
-
-        return self
+        return self.thatAre(predicate)
 
     def orAre(self, predicate: Predicate[T]) -> Find[T]:
         if self._predicate is None:
-            self._predicate = predicate
-        else:
-            current = self._predicate
-            self._predicate = lambda c: current(c) or predicate(c)
+            return Find(self._items, predicate)
 
-        return self
+        current = self._predicate
+        return Find(
+            self._items,
+            lambda x: current(x) or predicate(x),
+        )
 
     def without(self, predicate: Predicate[T]) -> Find[T]:
-        return self.andAre(lambda c: not predicate(c))
-
-    def toList(self) -> list[T]:
         if self._predicate is None:
-            return list(self._items).copy()
+            return Find(
+                self._items,
+                lambda x: not predicate(x),
+            )
 
-        return [c for c in self._items if self._predicate(c)]
+        current = self._predicate
+        return Find(
+            self._items,
+            lambda x: current(x) and not predicate(x),
+        )
 
-    def count(self) -> int:
-        return len(self.toList())
+    def select[U](self, mapper: Mapper[T, U]) -> Find[U]:
+        return Find(map(mapper, self))
+
+    def selectMany[U](
+        self,
+        mapper: Callable[[T], Iterable[U]],
+    ) -> Find[U]:
+        return Find(item for parent in self for item in mapper(parent))
+
+    def distinct(self) -> Find[T]:
+        def _distinct() -> Iterator[T]:
+            seen: set[Hashable] = set()
+
+            for item in self:
+                if item not in seen:
+                    seen.add(item)
+                    yield item
+
+        return Find(_distinct())
 
     def first(self) -> T | None:
-        cards = self.toList()
-        return cards[0] if cards else None
+        return next(iter(self), None)
+
+    def count(self) -> int:
+        return sum(1 for _ in self)
+
+    def toList(self) -> list[T]:
+        return list(self)
 
     def then(self, operator: Operator[T]) -> Find[T]:
-        operator(self.toList())
+        operator(self)
         return self
-        
-    def select(self, _map: Mapper[T, U]) -> Find[U]:
-        return Find(map(_map, self.toList()))
