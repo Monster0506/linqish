@@ -1,3 +1,4 @@
+from collections.abc import Iterable
 from enum import Enum
 from typing import NamedTuple
 
@@ -43,7 +44,8 @@ def faceCard(c: Card) -> bool:
     return c.rank >= 11 or c.rank == 1
 
 
-def printThem(items: list[Card]) -> None:
+def printThem(items: Iterable[Card]) -> None:
+    items = list(items)
     print("[", end="")
     for i, item in enumerate(items):
         if i < len(items) - 1:
@@ -60,9 +62,29 @@ def rank(i: int) -> CardPredicate:
 
 
 def main():
-    Find(cards).thatAre(suit(Suit.SPADES)).orAre(lessThan(5)).without(faceCard).orAre(
-        rank(1)
-    ).then(printThem).thatAre(suit(Suit.SPADES)).then(printThem)
+    print(
+        Find(cards)
+        .thatAre(faceCard)
+        .mappedTo(lambda c: c.suit)
+        .withoutDuplicates()
+        .toList()
+    )
+    print(
+        Find(cards)
+        .distinctBy(lambda c: c.suit)
+        .then(printThem)
+        .areAll(lambda c: c.rank == 1)
+    )
+    Find(cards).orderedBy(lambda c: c.rank).then(printThem)
+
+    Find(cards).thatAre(lambda c: c.rank > 4).groupedBy(lambda c: c.suit).then(
+        lambda groups: print(
+            "\n".join(
+                (f"Suit: {suit}, Items: {[n.rank for n in card]}")
+                for suit, card in groups
+            )
+        )
+    )
 
 
 if __name__ == "__main__":
