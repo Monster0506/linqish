@@ -64,16 +64,16 @@ class Find[T: Hashable](Iterable[T]):
             lambda x: current(x) and not predicate(x),
         )
 
-    def select[U](self, mapper: Mapper[T, U]) -> Find[U]:
+    def mappedTo[U](self, mapper: Mapper[T, U]) -> Find[U]:
         return Find(map(mapper, self))
 
-    def selectMany[U](
+    def expandedTo[U](
         self,
         mapper: Callable[[T], Iterable[U]],
     ) -> Find[U]:
         return Find(item for parent in self for item in mapper(parent))
 
-    def distinct(self) -> Find[T]:
+    def withoutDuplicates(self) -> Find[T]:
         def _distinct() -> Iterator[T]:
             seen: set[Hashable] = set()
 
@@ -109,16 +109,16 @@ class Find[T: Hashable](Iterable[T]):
         operator(self)
         return self
 
-    def any(self) -> bool:
+    def hasAny(self) -> bool:
         return any(True for _ in self)
 
-    def all(self, predicate: Predicate[T]) -> bool:
+    def areAll(self, predicate: Predicate[T]) -> bool:
         return all(predicate(x) for x in self)
 
-    def orderBy[K: SupportsLessThan](self, key: KeySelector[T, K]) -> Find[T]:
+    def orderedBy[K: SupportsLessThan](self, key: KeySelector[T, K]) -> Find[T]:
         return Find(sorted(self, key=key))
 
-    def groupBy[K: Hashable](
+    def groupedBy[K: Hashable](
         self,
         key: KeySelector[T, K],
     ) -> Find[Group[K, T]]:
@@ -128,4 +128,3 @@ class Find[T: Hashable](Iterable[T]):
             groups[key(item)].append(item)
 
         return Find[Group[K, T]](groups.items())
-
