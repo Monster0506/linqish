@@ -1,8 +1,9 @@
-from collections.abc import Callable, Iterable, Iterator
+from collections.abc import Callable, Iterable, Iterator, Hashable
 
 type Predicate[T] = Callable[[T], bool]
 type Operator[T] = Callable[[Iterable[T]], None]
 type Mapper[T, U] = Callable[[T], U]
+type KeySelector[T, K] = Callable[[T], K]
 
 
 class Find[T](Iterable[T]):
@@ -76,6 +77,17 @@ class Find[T](Iterable[T]):
 
         return Find(_distinct())
 
+    def distinctBy[K: Hashable](self, key: KeySelector[T,K] ) -> Find[T]:
+        def _distinct() -> Iterator[T]:
+            seen: set[Hashable] = set()
+
+            for item in self:
+                k = key(item)
+                if k not in seen:
+                    seen.add(k)
+                    yield item
+
+        return Find(_distinct())
     def first(self) -> T | None:
         return next(iter(self), None)
 
