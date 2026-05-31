@@ -58,3 +58,6 @@ class Find[T]:
     def then(self, operator: Operator[T]) -> Find[T]:
         operator(self.toList())
         return self
+        
+    def select(self, _map: Mapper[T, U]) -> Find[U]:
+        return Find(map(_map, self.toList()))
